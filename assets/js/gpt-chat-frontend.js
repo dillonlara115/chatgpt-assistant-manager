@@ -94,29 +94,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // Retrieve the assistant ID from the data attribute
             const assistantId = chatbot.dataset.assistantId;
             console.log('sendMessage Thread ID:', currentThreadId);  // Log the thread ID
-        
-            // Construct the request body
-            const requestBody = new URLSearchParams({
-                action: 'gpt_chat_send_message',
-                message: message,
-                assistant_id: assistantId,
-                api_key_name: chatbot.dataset.apiKeyName,
-                nonce: gptChatAjax.nonce,
-                thread_id: currentThreadId  // Use the existing thread ID
-            });
-        
-            console.log('Request Body:', requestBody.toString());  // Log the request body
-        
             fetch(gptChatAjax.ajax_url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: requestBody
-            }).then(response => {
-                console.log('Response Status:', response.status);  // Log the response status
-                return response.json();
-            })
+                body: new URLSearchParams({
+                    action: 'gpt_chat_send_message',
+                    message: message,
+                    assistant_id: assistantId,
+                    api_key_name: chatbot.dataset.apiKeyName,
+                    nonce: gptChatAjax.nonce,
+                    thread_id: currentThreadId  // Use the existing thread ID
+                })
+            }).then(response => response.json())
             .then(data => {
                 // Hide loading indicator
                 loadingIndicator.style.display = 'none';
@@ -137,7 +128,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     messagesContainer.appendChild(botMessage);
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
                 } else {
-                    console.error('Server Error:', data);
                     appendMessage('Error: ' + (data.error || 'Unknown error occurred.'), 'assistant');
                 }
             })
@@ -145,10 +135,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide loading indicator
                 loadingIndicator.style.display = 'none';
         
-                console.error('Fetch Error:', error);
                 appendMessage('Error: ' + error.message, 'assistant');
             });
-        }z
+        }
 
         // Handle "Send" button click
         sendButton.addEventListener('click', function() {
