@@ -18,13 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Function to append a message to the chat window
         function appendMessage(content, type = 'user') {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            messageElement.classList.add(type === 'assistant' ? 'bot-message' : 'user-message');
-            messageElement.textContent = content;
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
-        }
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    messageElement.classList.add(type === 'assistant' ? 'bot-message' : 'user-message');
+    
+    // Use innerHTML instead of textContent to allow HTML rendering
+    messageElement.innerHTML = content;
+
+    messagesContainer.appendChild(messageElement);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
+}
+
 
         // Function to make an initial API call to get the first prompt
         function fetchInitialPrompt() {
@@ -125,11 +129,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentThreadId = data.data.thread_id;
                     
                     let responseData = data.data.response;
-                    if (responseData && (responseData.includes('**') || responseData.includes('_') || responseData.includes('`'))) {
-                        responseData = marked.parse(responseData);
+
+                    if (responseData) {
+                        // Check if the response contains HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = responseData.trim();
+                        
+                        if (tempDiv.childNodes.length > 1 || tempDiv.firstChild.nodeType === Node.ELEMENT_NODE) {
+                            // If it's HTML, don't parse with marked, just use it as HTML
+                            responseData = tempDiv.innerHTML;
+                        } else {
+                            // If it's not HTML, parse with marked for Markdown
+                            responseData = marked.parse(responseData);
+                        }
                     }
-                    
+
                     appendMessage(responseData, 'assistant');
+
                 } else {
                     console.error('Server Error:', data);
                     appendMessage('Error: ' + (data.error || 'Unknown error occurred.'), 'assistant');
