@@ -33,42 +33,56 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading indicator
             loadingIndicator.style.display = 'block';
         
+            const requestBody = new URLSearchParams({
+                action: 'gpt_chat_send_message',
+                message: 'Hello, can you provide an initial prompt?',  // Default message for initial prompt
+                assistant_id: assistantId,
+                api_key_name: chatbot.dataset.apiKeyName,
+                nonce: gptChatAjax.nonce
+            });
+        
+            console.log('Request Body:', requestBody.toString());  // Log the request body
+        
             fetch(gptChatAjax.ajax_url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: new URLSearchParams({
-                    action: 'gpt_chat_send_message',
-                    message: 'Hello, can you provide an initial prompt?',  // Default message for initial prompt
-                    assistant_id: assistantId,
-                    api_key_name: chatbot.dataset.apiKeyName,
-                    nonce: gptChatAjax.nonce
-                })
-            }).then(response => response.json())
+                body: requestBody
+            }).then(response => {
+                console.log('Response Status:', response.status);  // Log the response status
+                return response.json();
+            })
             .then(data => {
                 // Hide loading indicator
                 loadingIndicator.style.display = 'none';
         
+                console.log('Server Response:', data);  // Log the entire server response
+        
                 if (data.success) {
-                    // Access the thread ID from the correct path
-                    currentThreadId = data.data.thread_details.threadId;
-                    console.log('Initial Thread ID:', currentThreadId);  // Log the thread ID
+                    if (data.data && data.data.thread_details) {
+                        // Access the thread ID from the correct path
+                        currentThreadId = data.data.thread_details.threadId;
+                        console.log('Initial Thread ID:', currentThreadId);  // Log the thread ID
         
-                    let responseData = data.data.response;
+                        let responseData = data.data.response;
         
-                    // Check if the response contains Markdown
-                    if (responseData.includes('**') || responseData.includes('_') || responseData.includes('`')) {
-                        // Convert Markdown to HTML
-                        responseData = marked.parse(responseData);
+                        // Check if the response contains Markdown
+                        if (responseData.includes('**') || responseData.includes('_') || responseData.includes('`')) {
+                            // Convert Markdown to HTML
+                            responseData = marked.parse(responseData);
+                        }
+        
+                        // Append server's response to the chat
+                        const botMessage = document.createElement('div');
+                        botMessage.className = 'message bot-message';
+                        botMessage.innerHTML = responseData;
+                        messagesContainer.appendChild(botMessage);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
+                    } else {
+                        console.error('Thread details are missing in the response:', data);
+                        appendMessage('Error: Thread details are missing.', 'assistant');
                     }
-        
-                    // Append server's response to the chat
-                    const botMessage = document.createElement('div');
-                    botMessage.className = 'message bot-message';
-                    botMessage.innerHTML = responseData;
-                    messagesContainer.appendChild(botMessage);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
                 } else {
                     console.error('Server Error:', data);
                     appendMessage('Error: ' + (data.error || 'Unknown error occurred.'), 'assistant');
@@ -93,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
             // Retrieve the assistant ID from the data attribute
             const assistantId = chatbot.dataset.assistantId;
-            console.log('sendMessage Thread ID:', currentThreadId);  // Log the thread ID
             fetch(gptChatAjax.ajax_url, {
                 method: 'POST',
                 headers: {

@@ -36,30 +36,32 @@ class GPT_Chat_Ajax {
                 ->withHttpClient($httpClient)
                 ->make();
     
-            if ($thread_id) {
-                // Continue the conversation in the existing thread
-                $response = $client->threads()->messages()->create($thread_id, [
-                    'messages' => [
-                        [
-                            'role' => 'user',
-                            'content' => $message,
-                        ],
-                    ],
-                ]);
-            } else {
-                // Create a new thread and send the initial message
-                $response = $client->threads()->createAndRun([
-                    'assistant_id' => $assistant_id,
-                    'thread' => [
+                if ($thread_id) {
+                    // Continue the conversation in the existing thread
+                    $response = $client->threads()->messages()->create($thread_id, [
+                        'role' => 'user',
+                        'content' => $message,
+                    ]);
+                
+                    // Get the assistant's response
+                    $assistantResponse = $response->choices[0]['message']['content'];
+                } else {
+                    // Create a new thread and send the initial message
+                    $response = $client->threads()->createAndRun([
+                        'assistant_id' => $assistant_id,
                         'messages' => [
                             [
                                 'role' => 'user',
                                 'content' => $message,
                             ],
                         ],
-                    ],
-                ]);
-            }
+                    ]);
+                
+                    // Get the assistant's response
+                    $assistantResponse = $response->choices[0]['message']['content'];
+                }
+                
+                
     
             // Ensure the thread ID is correctly set
             $threadDetails = [
