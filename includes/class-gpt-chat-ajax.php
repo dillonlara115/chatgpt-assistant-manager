@@ -10,9 +10,11 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use OpenAI;
 
-
 class GPT_Chat_Ajax {
     public static function send_message() {
+        set_time_limit(60); // 5 minutes
+        ini_set('memory_limit', '256M');
+    
         check_ajax_referer('gpt_chat_nonce', 'nonce');
     
         $message = sanitize_text_field($_POST['message']);
@@ -32,14 +34,14 @@ class GPT_Chat_Ajax {
     
         try {
             $httpClient = new Client([
-                'base_uri' => 'https://api.openai.com/v1/',
+                'base_uri' => 'https://api.openai.com/v1/assistants',
                 'headers' => [
                     'Authorization' => 'Bearer ' . $api_key,
                     'OpenAI-Beta' => 'assistants=v2',
                     'Content-Type' => 'application/json',
                 ],
-                'timeout' => 300,
-                'connect_timeout' => 100
+                'timeout' => 60,
+                'connect_timeout' => 60
             ]);
     
             error_log("GPT Chat: HTTP Client created. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
@@ -47,127 +49,98 @@ class GPT_Chat_Ajax {
             $client = OpenAI::factory()
                 ->withApiKey($api_key)
                 ->withHttpClient($httpClient)
+                ->withStreamHandler(fn (RequestInterface $request): ResponseInterface => $client->send($request, [
+                    'stream' => true
+                ]))
                 ->make();
     
             error_log("GPT Chat: OpenAI client created. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
     
-            if (!$thread_id) {
-                $thread = $client->threads()->create([]);
-                $thread_id = $thread->id;
-                error_log("GPT Chat: New thread created. Thread ID: $thread_id. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
-            }
+            // Start output buffering
+            ob_start();
     
-            $client->threads()->messages()->create($thread_id, [
-                'role' => 'user',
-                'content' => $message,
-            ]);
-            error_log("GPT Chat: Message added to thread. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
+            // Set headers for chunked transfer encoding
+            header('Content-Type: application/json');
+            header('Transfer-Encoding: chunked');
     
-            $run = $client->threads()->runs()->create($thread_id, [
-                'assistant_id' => $assistant_id,
-            ]);
-            error_log("GPT Chat: Run created. Run ID: {$run->id}. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
+            // Flush headers
+            ob_flush();
+            flush();
     
-            $max_wait_time = 280; // Reduced from 190 to allow for processing time
-            $start_wait_time = time();
-    
-            // Wait for the run to complete
-            while ($run->status !== 'completed') {
-                if (time() - $start_wait_time > $max_wait_time) {
-                    error_log("GPT Chat: Run timed out after {$max_wait_time} seconds. Run ID: {$run->id}, Thread ID: {$thread_id}");
-                    throw new Exception("Request timed out after {$max_wait_time} seconds.");
+            $new_session = !$thread_id;
+
+        if ($new_session) {
+            // Create a new thread for each new session
+            $thread = $client->threads()->create([]);
+            $thread_id = $thread->id;
+            self::sendChunk(json_encode(['status' => 'thread_created', 'thread_id' => $thread_id]));
+        }
+
+        // Add the new message to the thread
+        $client->threads()->messages()->create($thread_id, [
+            'role' => 'user',
+            'content' => $message,
+        ]);
+
+        // Create a new run
+        $run = $client->threads()->runs()->create($thread_id, [
+            'assistant_id' => $assistant_id,
+        ]);
+
+        self::sendChunk(json_encode(['status' => 'run_created', 'run_id' => $run->id]));
+
+        $maxAttempts = 60; // 3 minutes
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            $runStatus = $client->threads()->runs()->retrieve($thread_id, $run->id);
+            self::sendChunk(json_encode(['status' => $runStatus->status]));
+
+            if ($runStatus->status === 'completed') {
+                // Retrieve the last message, which should be the assistant's response
+                $messages = $client->threads()->messages()->list($thread_id, [
+                    'limit' => 1,
+                    'order' => 'desc'
+                ]);
+
+                if (!empty($messages->data) && $messages->data[0]->role === 'assistant') {
+                    $content = $messages->data[0]->content[0]->text->value;
+                    self::sendChunk(json_encode([
+                        'type' => 'message',
+                        'content' => $content,
+                    ]));
                 }
-                sleep(1);
-                $run = $client->threads()->runs()->retrieve($thread_id, $run->id);
-                error_log("GPT Chat: Run status: {$run->status}. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
+                break;
+            } elseif (in_array($runStatus->status, ['failed', 'cancelled', 'expired'])) {
+                throw new Exception("Run failed with status: " . $runStatus->status);
             }
+
+            $attempt++;
+            usleep(500000); // Sleep for 0.5 seconds
+        }
+
+        if ($attempt >= $maxAttempts) {
+            throw new Exception("Run did not complete within the expected time.");
+        }
+
     
-            $messages = $client->threads()->messages()->list($thread_id);
-            error_log("GPT Chat: Messages retrieved. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
-    
-            $assistantResponse = '';
-            foreach ($messages->data as $msg) {
-                if ($msg->role === 'assistant') {
-                    $assistantResponse = $msg->content[0]->text->value;
-                    break;
-                }
-            }
-    
-            $end_time = microtime(true);
-            $execution_time = $end_time - $start_time;
-            error_log("GPT Chat: Request completed in {$execution_time} seconds. Thread ID: {$thread_id}");
-    
-            wp_send_json_success([
-                'thread_id' => $thread_id,
-                'response' => $assistantResponse,
-            ]);
-    
+            // Send the end chunk
+            self::sendChunk("");
+
+            exit();
         } catch (Exception $e) {
             $end_time = microtime(true);
             $execution_time = $end_time - $start_time;
-            error_log("GPT Chat Error: {$e->getMessage()}. Execution time: {$execution_time} seconds.");
-            wp_send_json_error(['error' => __('Error communicating with OpenAI: ', 'gpt-chat-assistant') . $e->getMessage()]);
+            error_log("GPT Chat Error: {$e->getMessage()}. Execution time: {$execution_time} seconds. Last status: " . ($runStatus->status ?? 'unknown'));
+            self::sendChunk(json_encode(['error' => __('Error communicating with OpenAI: ', 'gpt-chat-assistant') . $e->getMessage()]));
+            exit();
         }
     }
-
-    public static function check_run_status() {
-        check_ajax_referer('gpt_chat_nonce', 'nonce');
-
-        $run_id = sanitize_text_field($_POST['run_id']);
-        $thread_id = sanitize_text_field($_POST['thread_id']);
-        $api_key_name = sanitize_text_field($_POST['api_key_name']);
-
-        $api_keys = gpt_chat_get_api_keys();
-        $api_key = isset($api_keys[$api_key_name]) ? $api_keys[$api_key_name] : '';
-
-        if (empty($api_key)) {
-            wp_send_json_error(['error' => __('API key not set.', 'gpt-chat-assistant')]);
-            return;
-        }
-
-        try {
-            $httpClient = new Client([
-                'base_uri' => 'https://api.openai.com/v1/',
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'OpenAI-Beta' => 'assistants=v2',
-                    'Content-Type' => 'application/json',
-                ],
-                'timeout' => 300,
-                'connect_timeout' => 100
-            ]);
-
-
-            $client = OpenAI::factory()
-                ->withApiKey($api_key)
-                ->withHttpClient($httpClient)
-                ->withStreamHandler(fn (RequestInterface $request): ResponseInterface => $client->send($request, [
-                    'stream' => true // Allows to provide a custom stream handler for the http client.
-                ]))
-                ->make();
-
-            $run = $client->threads()->runs()->retrieve($thread_id, $run_id);
-
-            if ($run->status === 'completed') {
-                $messages = $client->threads()->messages()->list($thread_id);
-                $lastMessage = $messages->data[0];
-                $assistantResponse = $lastMessage->content[0]->text->value;
-
-                wp_send_json_success([
-                    'status' => 'completed',
-                    'response' => $assistantResponse,
-                    'thread_id' => $thread_id,
-                ]);
-            } else {
-                wp_send_json_success([
-                    'status' => $run->status,
-                    'run_id' => $run_id,
-                    'thread_id' => $thread_id,
-                ]);
-            }
-        } catch (Exception $e) {
-            error_log('GPT Chat Error: ' . $e->getMessage());
-            wp_send_json_error(['error' => __('Error communicating with OpenAI: ', 'gpt-chat-assistant') . $e->getMessage()]);
-        }
+    
+    // Function to send a chunk of data
+    public static function sendChunk($data) {
+        echo sprintf("%x\r\n%s\r\n", strlen($data), $data);
+        ob_flush();
+        flush();
     }
 }
