@@ -6,9 +6,10 @@ if (!defined('ABSPATH')) {
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use OpenAI;
-use Symfony\Component\HttpClient\Psr18Client;
-use Symfony\Component\HttpClient\HttpClient;
+
 
 class GPT_Chat_Ajax {
     public static function send_message() {
@@ -30,16 +31,15 @@ class GPT_Chat_Ajax {
         error_log("GPT Chat: Starting request. Thread ID: " . ($thread_id ?? 'New Thread'));
     
         try {
-            $httpClient = new Psr18Client(HttpClient::create([
+            $httpClient = new Client([
+                'base_uri' => 'https://api.openai.com/v1/',
                 'headers' => [
+                    'Authorization' => 'Bearer ' . $api_key,
                     'OpenAI-Beta' => 'assistants=v2',
+                    'Content-Type' => 'application/json',
                 ],
-                'timeout' => 280,
-                'max_duration' => 300, // 5 minutes total duration
-                'http_version' => '2.0',
-                
-                
-            ]));
+                'timeout' => 300,
+            ]);
     
             error_log("GPT Chat: HTTP Client created. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
     

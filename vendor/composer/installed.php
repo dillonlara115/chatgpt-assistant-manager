@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'dillon/chatgpt-assistant-manager',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '243c0ef4b07ca22effd3915ff81aba51b9de355e',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,18 +11,18 @@
     ),
     'versions' => array(
         'dillon/chatgpt-assistant-manager' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '243c0ef4b07ca22effd3915ff81aba51b9de355e',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
         'guzzlehttp/guzzle' => array(
-            'pretty_version' => '6.5.8',
-            'version' => '6.5.8.0',
-            'reference' => 'a52f0440530b54fa079ce76e8c5d196a42cad981',
+            'pretty_version' => '7.9.2',
+            'version' => '7.9.2.0',
+            'reference' => 'd281ed313b989f213357e3be1a179f02196ac99b',
             'type' => 'library',
             'install_path' => __DIR__ . '/../guzzlehttp/guzzle',
             'aliases' => array(),
@@ -38,9 +38,9 @@
             'dev_requirement' => false,
         ),
         'guzzlehttp/psr7' => array(
-            'pretty_version' => '1.9.1',
-            'version' => '1.9.1.0',
-            'reference' => 'e4490cabc77465aaee90b20cfc9a770f8c04be6b',
+            'pretty_version' => '2.7.0',
+            'version' => '2.7.0.0',
+            'reference' => 'a70f5c95fb43bc83f07c9c948baa0dc1829bf201',
             'type' => 'library',
             'install_path' => __DIR__ . '/../guzzlehttp/psr7',
             'aliases' => array(),
@@ -68,14 +68,12 @@
             'dev_requirement' => false,
             'provided' => array(
                 0 => '*',
-                1 => '1.0',
             ),
         ),
         'php-http/client-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
                 0 => '*',
-                1 => '1.0',
             ),
         ),
         'php-http/discovery' => array(
@@ -84,24 +82,6 @@
             'reference' => '82fe4c73ef3363caed49ff8dd1539ba06044910d',
             'type' => 'composer-plugin',
             'install_path' => __DIR__ . '/../php-http/discovery',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'php-http/guzzle6-adapter' => array(
-            'pretty_version' => 'v2.0.2',
-            'version' => '2.0.2.0',
-            'reference' => '9d1a45eb1c59f12574552e81fb295e9e53430a56',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../php-http/guzzle6-adapter',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'php-http/httplug' => array(
-            'pretty_version' => '2.4.1',
-            'version' => '2.4.1.0',
-            'reference' => '5cad731844891a4c282f3f3e1b582c46839d22f4',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../php-http/httplug',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -117,15 +97,6 @@
             'reference' => '10086e6de6f53489cca5ecc45b6f468604d3460e',
             'type' => 'library',
             'install_path' => __DIR__ . '/../php-http/multipart-stream-builder',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'php-http/promise' => array(
-            'pretty_version' => '1.3.1',
-            'version' => '1.3.1.0',
-            'reference' => 'fc85b1fba37c169a69a07ef0d5a8075770cc1f83',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../php-http/promise',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -166,14 +137,14 @@
         'psr/http-factory-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '1.0',
-                1 => '*',
+                0 => '*',
+                1 => '1.0',
             ),
         ),
         'psr/http-message' => array(
-            'pretty_version' => '1.1',
-            'version' => '1.1.0.0',
-            'reference' => 'cb6ce4845ce34a8ad9e68117c10ee90a29919eba',
+            'pretty_version' => '2.0',
+            'version' => '2.0.0.0',
+            'reference' => '402d35bcb92c70c026d1a6a9883f06b2ead23d71',
             'type' => 'library',
             'install_path' => __DIR__ . '/../psr/http-message',
             'aliases' => array(),
@@ -182,8 +153,8 @@
         'psr/http-message-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '1.0',
-                1 => '*',
+                0 => '*',
+                1 => '1.0',
             ),
         ),
         'psr/log' => array(
@@ -236,24 +207,6 @@
             'provided' => array(
                 0 => '3.0',
             ),
-        ),
-        'symfony/polyfill-intl-idn' => array(
-            'pretty_version' => 'v1.31.0',
-            'version' => '1.31.0.0',
-            'reference' => 'c36586dcf89a12315939e00ec9b4474adcb1d773',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../symfony/polyfill-intl-idn',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'symfony/polyfill-intl-normalizer' => array(
-            'pretty_version' => 'v1.31.0',
-            'version' => '1.31.0.0',
-            'reference' => '3833d7255cc303546435cb650316bff708a1c75c',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../symfony/polyfill-intl-normalizer',
-            'aliases' => array(),
-            'dev_requirement' => false,
         ),
         'symfony/service-contracts' => array(
             'pretty_version' => 'v3.5.0',
