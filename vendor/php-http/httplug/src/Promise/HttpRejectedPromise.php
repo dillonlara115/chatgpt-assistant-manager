@@ -12,34 +12,41 @@ final class HttpRejectedPromise implements Promise
      */
     private $exception;
 
+    /**
+     * @param Exception $exception
+     */
     public function __construct(Exception $exception)
     {
         $this->exception = $exception;
     }
 
-    public function then(?callable $onFulfilled = null, ?callable $onRejected = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function then(callable $onFulfilled = null, callable $onRejected = null)
     {
         if (null === $onRejected) {
             return $this;
         }
 
         try {
-            $result = $onRejected($this->exception);
-            if ($result instanceof Promise) {
-                return $result;
-            }
-
-            return new HttpFulfilledPromise($result);
+            return new HttpFulfilledPromise($onRejected($this->exception));
         } catch (Exception $e) {
             return new self($e);
         }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function getState()
     {
         return Promise::REJECTED;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function wait($unwrap = true)
     {
         if ($unwrap) {
