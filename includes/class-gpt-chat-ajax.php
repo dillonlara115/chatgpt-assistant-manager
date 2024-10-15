@@ -39,6 +39,7 @@ class GPT_Chat_Ajax {
                     'Content-Type' => 'application/json',
                 ],
                 'timeout' => 300,
+                'connect_timeout' => 100
             ]);
     
             error_log("GPT Chat: HTTP Client created. Time elapsed: " . (microtime(true) - $start_time) . " seconds");
@@ -125,15 +126,17 @@ class GPT_Chat_Ajax {
         }
 
         try {
-            $httpClient = new Psr18Client(HttpClient::create([
+            $httpClient = new Client([
+                'base_uri' => 'https://api.openai.com/v1/',
                 'headers' => [
+                    'Authorization' => 'Bearer ' . $api_key,
                     'OpenAI-Beta' => 'assistants=v2',
+                    'Content-Type' => 'application/json',
                 ],
-                'timeout' => 280,
-                'max_duration' => 300, // 5 minutes total duration
-                'http_version' => '2.0',
-                
-            ]));
+                'timeout' => 300,
+                'connect_timeout' => 100
+            ]);
+
 
             $client = OpenAI::factory()
                 ->withApiKey($api_key)
