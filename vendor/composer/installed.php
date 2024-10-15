@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'dillon/chatgpt-assistant-manager',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => 'b2706ba33f6a52437a2810061287e197ff630904',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'dillon/chatgpt-assistant-manager' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => 'b2706ba33f6a52437a2810061287e197ff630904',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -88,18 +88,18 @@
             'dev_requirement' => false,
         ),
         'php-http/guzzle6-adapter' => array(
-            'pretty_version' => 'v1.1.1',
-            'version' => '1.1.1.0',
-            'reference' => 'a56941f9dc6110409cfcddc91546ee97039277ab',
+            'pretty_version' => 'v2.0.2',
+            'version' => '2.0.2.0',
+            'reference' => '9d1a45eb1c59f12574552e81fb295e9e53430a56',
             'type' => 'library',
             'install_path' => __DIR__ . '/../php-http/guzzle6-adapter',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
         'php-http/httplug' => array(
-            'pretty_version' => 'v1.1.0',
-            'version' => '1.1.0.0',
-            'reference' => '1c6381726c18579c4ca2ef1ec1498fdae8bdf018',
+            'pretty_version' => '2.4.1',
+            'version' => '2.4.1.0',
+            'reference' => '5cad731844891a4c282f3f3e1b582c46839d22f4',
             'type' => 'library',
             'install_path' => __DIR__ . '/../php-http/httplug',
             'aliases' => array(),
@@ -166,8 +166,8 @@
         'psr/http-factory-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '*',
-                1 => '1.0',
+                0 => '1.0',
+                1 => '*',
             ),
         ),
         'psr/http-message' => array(
@@ -182,8 +182,8 @@
         'psr/http-message-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '*',
-                1 => '1.0',
+                0 => '1.0',
+                1 => '*',
             ),
         ),
         'psr/log' => array(
