@@ -6,48 +6,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const sendButton = chatbot.querySelector('#gpt-chat-send');
         const messagesContainer = chatbot.querySelector('#gpt-chat-messages');
 
-        // Create a loading indicator
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.className = 'loading-indicator';
-        loadingIndicator.textContent = 'Loading...';
-        loadingIndicator.style.display = 'none';  // Initially hidden
-        messagesContainer.appendChild(loadingIndicator);
-
         // Variable to store the current thread ID
         let currentThreadId = null;
+        let isNewSession = true;
+
 
         // Function to append a message to the chat window
         function appendMessage(content, type = 'user') {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
-    messageElement.classList.add(type === 'assistant' ? 'bot-message' : 'user-message');
-    
-    // Use innerHTML instead of textContent to allow HTML rendering
-    messageElement.innerHTML = content;
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(type === 'assistant' ? 'bot-message' : 'user-message');
+            
+            // Use innerHTML instead of textContent to allow HTML rendering
+            messageElement.innerHTML = marked.parse(content);
 
-    messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
-}
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Auto-scroll to the bottom
+            return messageElement;
+        }
 
-
-        // Function to make an initial API call to get the first prompt
-        function fetchInitialPrompt() {
-            console.log('Fetching initial prompt');
-            const assistantId = chatbot.dataset.assistantId;
-            
-            // Show loading indicator
-            loadingIndicator.style.display = 'block';
-            
-            const requestBody = new URLSearchParams({
-                action: 'gpt_chat_send_message',
-                message: 'Hello, can you provide an initial prompt?',  // Default message for initial prompt
-                assistant_id: assistantId,
-                api_key_name: chatbot.dataset.apiKeyName,
-                nonce: gptChatAjax.nonce
-            });
-            
-            console.log('Request Body:', requestBody.toString());  // Log the request body
-            
+        // Function to handle streaming fetch
+        function fetchWithStreaming(requestBody) {
+            let responseElement = null;
+        
             fetch(gptChatAjax.ajax_url, {
                 method: 'POST',
                 headers: {
@@ -56,119 +37,114 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: requestBody
             })
             .then(response => {
-                console.log('Response Status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Parsed Response:', data);  // Log the parsed response
-                
-                // Hide loading indicator
-                loadingIndicator.style.display = 'none';
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
         
-                // Check for success
-                if (data.success) {
-                    // Access and log the thread ID
-                    currentThreadId = data.data.thread_id;
-                    console.log('Initial Thread ID:', currentThreadId);
-        
-                    let responseData = data.data.response;
-        
-                    // Check if the response contains Markdown
-                    if (responseData && (responseData.includes('**') || responseData.includes('_') || responseData.includes('`'))) {
-                        // Convert Markdown to HTML
-                        responseData = marked.parse(responseData);
-                    }
-        
-                    // Append the assistant's response to the chat
-                    appendMessage(responseData, 'assistant');
-                } else {
-                    console.error('Server Error:', data);
-                    appendMessage('Error: ' + (data.error || 'Unknown error occurred.'), 'assistant');
+                function readChunk() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            return;
+                        }
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        
+                        let boundary;
+                        while ((boundary = buffer.indexOf('\r\n')) !== -1) {
+                            const chunk = buffer.slice(0, boundary);
+                            buffer = buffer.slice(boundary + 2);
+                            
+                            if (chunk.trim()) {
+                                try {
+                                    const data = JSON.parse(chunk);
+                                    if (data.status) {
+                                        updateStatus(data.status);
+                                    } else if (data.type === 'message') {
+                                        if (!responseElement) {
+                                            responseElement = appendMessage('', 'assistant');
+                                        }
+                                        appendToChat(data.content, responseElement);
+                                    } else if (data.type === 'error') {
+                                        showError(data.message);
+                                    }
+                                    if (data.thread_id) {
+                                        currentThreadId = data.thread_id;
+                                        console.log('Updated thread ID:', currentThreadId);
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing chunk:', e);
+                                }
+                            }
+                        }
+                        
+                        return readChunk();
+                    });
                 }
+        
+                return readChunk();
             })
-            .catch((error) => {
-                // Hide loading indicator
-                loadingIndicator.style.display = 'none';
-                console.error('Fetch Error:', error);
-                appendMessage('Error: ' + error.message, 'assistant');
+            .catch(error => {
+                console.error('Error:', error);
+                showError(error.message);
             });
         }
         
+        // Function to update status
+        function updateStatus(status) {
+            console.log('Current status:', status);
+            // You can implement UI updates for status here if needed
+        }
+        
+        // Function to append to chat
+        function appendToChat(text, element) {
+            if (element) {
+                element.innerHTML += marked.parse(text);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+                console.error('No element to append to');
+            }
+        }
+        
+        // Function to show error
+        function showError(error) {
+            console.error('Error:', error);
+            appendMessage('Error: ' + error, 'assistant');
+        }
+
+        // Function to send a message
+        function sendMessage(message, isInitialPrompt = false) {
+            const assistantId = chatbot.dataset.assistantId;
+            const requestBody = new URLSearchParams({
+                action: 'gpt_chat_send_message',
+                message: message,
+                assistant_id: assistantId,
+                api_key_name: chatbot.dataset.apiKeyName,
+                nonce: gptChatAjax.nonce,
+                thread_id: isNewSession ? '' : (currentThreadId || '')
+            });
+
+            if (!isInitialPrompt) {
+                appendMessage(message, 'user');
+            }
+
+            fetchWithStreaming(requestBody);
+            isNewSession = false;
+        }
+
+        // Function to fetch initial prompt
+        function fetchInitialPrompt() {
+            sendMessage('Hello, can you provide an initial prompt?', true);
+        }
 
         // Call the function to fetch the initial prompt
         fetchInitialPrompt();
 
-        // Function to send a user message
-        function sendMessage(message) {
-            loadingIndicator.style.display = 'block';
-        
-            const assistantId = chatbot.dataset.assistantId;
-            fetch(gptChatAjax.ajax_url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    action: 'gpt_chat_send_message',
-                    message: message,
-                    assistant_id: assistantId,
-                    api_key_name: chatbot.dataset.apiKeyName,
-                    nonce: gptChatAjax.nonce,
-                    thread_id: currentThreadId || ''
-                })
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error('HTTP error, status = ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                loadingIndicator.style.display = 'none';
-                
-                if (data.success) {
-                    currentThreadId = data.data.thread_id;
-                    
-                    let responseData = data.data.response;
-
-                    if (responseData) {
-                        // Check if the response contains HTML
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = responseData.trim();
-                        
-                        if (tempDiv.childNodes.length > 1 || tempDiv.firstChild.nodeType === Node.ELEMENT_NODE) {
-                            // If it's HTML, don't parse with marked, just use it as HTML
-                            responseData = tempDiv.innerHTML;
-                        } else {
-                            // If it's not HTML, parse with marked for Markdown
-                            responseData = marked.parse(responseData);
-                        }
-                    }
-
-                    appendMessage(responseData, 'assistant');
-
-                } else {
-                    console.error('Server Error:', data);
-                    appendMessage('Error: ' + (data.error || 'Unknown error occurred.'), 'assistant');
-                }
-            })
-            .catch((error) => {
-                loadingIndicator.style.display = 'none';
-                console.error('Fetch Error:', error);
-                appendMessage('Error: ' + error.message, 'assistant');
-            });
-        }
-        
-        
         // Handle "Send" button click
         sendButton.addEventListener('click', function() {
             const message = messageInput.value.trim();
             if (!message) return;  // Ignore if empty
 
-            // Append the user's message to the chat window
-            appendMessage(message, 'user');
             messageInput.value = '';  // Clear input
-
-            // Send the user's message
             sendMessage(message);
         });
 
