@@ -1,0 +1,27 @@
+{
+    "remotePath": "wp-content/plugins/chatgpt-assistant-manager/",
+    "host": "ftp.okaneconsulting.com",
+    "username": "dillon@mixituponline.com",
+    "password": "UlX)5^e[vd,^",
+    "port": 21,
+    "secure": false,
+    "protocol": "ftp",
+    "uploadOnSave": false,
+    "passive": false,
+    "debug": false,
+    "privateKeyPath": null,
+    "passphrase": null,
+    "agent": null,
+    "allow": [],
+    "ignore": [
+        "\\.vscode",
+        "\\.git",
+        "\\.DS_Store"
+    ],
+    "generatedFiles": {
+        "extensionsToInclude": [
+            ""
+        ],
+        "path": ""
+    }
+}
