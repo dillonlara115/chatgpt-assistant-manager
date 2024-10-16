@@ -9,6 +9,18 @@ class GPT_Chat_Shortcode {
             return __('Invalid assistant data', 'gpt-chat-assistant');
         }
 
+        // Generate a nonce for authentication
+        $auth_token = wp_create_nonce('gpt_chat_auth');
+
+        // Enqueue the script and localize data
+        wp_enqueue_script('gpt-chat-frontend', plugins_url('/assets/js/gpt-chat-frontend.js', dirname(__FILE__)), array('jquery'), GPT_CHAT_PLUGIN_VERSION, true);
+        wp_localize_script('gpt-chat-frontend', 'gptChatData', array(
+            'wordpressUrl' => get_site_url(),
+            'authToken' => wp_create_nonce('gpt_chat_auth'),
+            'apiToken' => get_option('gpt_chat_api_token'),
+            'nodeJsUrl' => 'http://localhost:3000' // Replace with your actual Node.js server URL
+        ));
+
         ob_start();
         ?>
         <div class="chatbot-container gpt-chatbot" 
