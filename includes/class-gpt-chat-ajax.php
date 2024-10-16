@@ -11,6 +11,8 @@ use GuzzleHttp\Exception\GuzzleException;
 use OpenAI;
 
 class GPT_Chat_Ajax {
+    private static $max_tokens = 4000; // Set a default max token limit
+
     public static function send_message() {
         set_time_limit(60); // 5 minutes
         ini_set('memory_limit', '256M');
@@ -82,7 +84,7 @@ class GPT_Chat_Ajax {
             'content' => $message,
         ]);
 
-        // Create a new run
+        // Create a new run with max_tokens parameter
         $run = $client->threads()->runs()->create($thread_id, [
             'assistant_id' => $assistant_id,
         ]);
@@ -91,6 +93,8 @@ class GPT_Chat_Ajax {
 
         $maxAttempts = 60; // 3 minutes
         $attempt = 0;
+
+        error_log('Max tokens set to: ' . self::$max_tokens);
 
         while ($attempt < $maxAttempts) {
             $runStatus = $client->threads()->runs()->retrieve($thread_id, $run->id);
@@ -105,6 +109,8 @@ class GPT_Chat_Ajax {
 
                 if (!empty($messages->data) && $messages->data[0]->role === 'assistant') {
                     $content = $messages->data[0]->content[0]->text->value;
+                    $responseTokens = self::estimateTokens($content);
+                    error_log("Estimated tokens in response: " . $responseTokens);
                     self::sendChunk(json_encode([
                         'type' => 'message',
                         'content' => $content,
@@ -142,5 +148,15 @@ class GPT_Chat_Ajax {
         echo sprintf("%x\r\n%s\r\n", strlen($data), $data);
         ob_flush();
         flush();
+    }
+
+    // Function to set max tokens
+    public static function set_max_tokens($tokens) {
+        self::$max_tokens = intval($tokens);
+    }
+
+    private static function estimateTokens($text) {
+        // This is a rough estimate. OpenAI uses a more complex tokenization.
+        return (int)(strlen($text) / 4);
     }
 }
