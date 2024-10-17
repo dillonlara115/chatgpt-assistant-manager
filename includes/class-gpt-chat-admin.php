@@ -37,49 +37,8 @@ class GPT_Chat_Admin {
 			'gpt-chat-api-settings',
 			array(__CLASS__, 'render_api_settings_page')
 		);
-		 add_submenu_page(
-			'gpt-chat-assistants', // Parent slug
-			'API Token',          // Page title
-			'API Token',          // Menu title
-			'manage_options',     // Capability
-			'gpt-chat-api-token', // Menu slug
-			'gpt_chat_api_token_page' // Callback function
-		);
 	}
-	public static function gpt_chat_api_token_page() {
-		if (!current_user_can('manage_options')) {
-			wp_die(__('You do not have sufficient permissions to access this page.'));
-		}
 	
-		error_log('Rendering API Token page');
-	
-		try {
-			if (isset($_POST['regenerate_token'])) {
-				check_admin_referer('gpt_chat_regenerate_token');
-				$token = gpt_chat_generate_api_token();
-				echo '<div class="updated"><p>API token regenerated.</p></div>';
-			} else {
-				$token = get_option('gpt_chat_api_token');
-				if (!$token) {
-					$token = gpt_chat_generate_api_token();
-				}
-			}
-	
-			?>
-			<div class="wrap">
-				<h1>GPT Chat API Token</h1>
-				<p>Use this token to authenticate API requests: <strong><?php echo esc_html($token); ?></strong></p>
-				<form method="post">
-					<?php wp_nonce_field('gpt_chat_regenerate_token'); ?>
-					<input type="submit" name="regenerate_token" value="Regenerate Token" class="button button-primary">
-				</form>
-			</div>
-			<?php
-		} catch (Exception $e) {
-			error_log('Error in gpt_chat_api_token_page: ' . $e->getMessage());
-			echo '<div class="error"><p>An error occurred while rendering the API Token page. Please check the error logs.</p></div>';
-		}
-	}
 	public static function render_api_settings_page() {
 		if (!current_user_can('edit_posts')) {
 			wp_die(__('You do not have sufficient permissions to access this page.', 'gpt-chat-assistant'));
@@ -90,7 +49,7 @@ class GPT_Chat_Admin {
 			$api_key = sanitize_text_field($_POST['gpt_chat_api_key']);
 			
 			gpt_chat_save_api_key($key_name, $api_key);
-			echo '<div class="updated"><p>' . __('API Key saved and encrypted.', 'gpt-chat-assistant') . '</p></div>';
+			echo '<div class="updated"><p>' . __('API Key saved successfully.', 'gpt-chat-assistant') . '</p></div>';
 		}
 	
 		// Fetch the API keys

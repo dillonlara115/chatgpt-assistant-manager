@@ -28,9 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 assistantId: assistantId,
                 threadId: threadId || '',  // Ensure threadId is a string
                 apiKeyName: apiKeyName,
-                wordpressUrl: gptChatData.wordpressUrl,
-                authToken: gptChatData.authToken,
-                apiToken: gptChatData.apiToken
+                wordpressUrl: gptChatData.wordpressUrl
             };
 
             fetch(gptChatData.nodeJsUrl + '/api/run-assistant', {

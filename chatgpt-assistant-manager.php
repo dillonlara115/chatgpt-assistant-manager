@@ -58,34 +58,28 @@ class GPT_Chat_API {
             register_rest_route('gpt-chat/v1', '/api-keys', array(
                 'methods' => 'GET',
                 'callback' => array(__CLASS__, 'get_api_keys'),
-                'permission_callback' => 'gpt_chatbot_permissions_check',
+                'permission_callback' => '__return_true',
             ));
         });
-
-
-    }
-    
-  
-}
-
-
-        /**
- * Permission callback to authenticate the request.
- *
- * @param WP_REST_Request $request
- * @return bool|WP_Error
- */
-function gpt_chatbot_permissions_check($request) {
-    // Retrieve the X-API-Token header
-    $api_token = $request->get_header('X-API-Token');
-    $secret_token = '5bwThLkRFv1Nw5aN2DXuCaMmltL0v2Nu'; // **Replace with your actual API token**
-
-    if ($api_token && $api_token === $secret_token) {
-        return true;
     }
 
-    return new WP_Error('rest_not_authorized', 'You are not authorized to access this endpoint.', array('status' => 401));
+    /**
+     * Retrieves all stored API keys.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public static function get_api_keys($request) {
+        $api_keys = gpt_chat_get_api_keys(); // Use the existing function to retrieve API keys
+
+        if (empty($api_keys)) {
+            return new WP_Error('no_keys', __('No API keys found.', 'gpt-chat-assistant'), array('status' => 404));
+        }
+
+        return rest_ensure_response(array('apiKeys' => $api_keys));
+    }
 }
+
 
 /**
  * Callback to retrieve the API key.
@@ -95,7 +89,7 @@ function gpt_chatbot_permissions_check($request) {
  */
 function gpt_chatbot_get_api_key($request) {
     $key_name = $request->get_param('keyName');
-    $api_keys = get_option('gpt_chatbot_api_keys'); // **Assuming you store API keys as an option. Adjust as needed.**
+    $api_keys = get_option('gpt_chat_api_keys'); // **Assuming you store API keys as an option. Adjust as needed.**
 
     if (isset($api_keys[$key_name])) {
         return rest_ensure_response(array('apiKey' => $api_keys[$key_name]));
@@ -137,15 +131,6 @@ function gpt_chat_deactivate() {
     // Cleanup tasks (if any)
 }
 
-function gpt_chat_update_db_check() {
-    $current_version = get_option('gpt_chat_db_version', '1.0');
-    if ($current_version !== '1.1') {
-        gpt_chat_activate();
-    }
-}
-
-add_action('plugins_loaded', 'gpt_chat_update_db_check');
-
 // Initialize plugin
 add_action('plugins_loaded', 'gpt_chat_init');
 function gpt_chat_init() {
@@ -185,52 +170,7 @@ function gpt_chat_enqueue_frontend_assets() {
         'nonce'    => wp_create_nonce('gpt_chat_nonce'),
     ));
 }
-function gpt_chat_encrypt_string($string) {
-    $key = wp_salt('auth');
-    $method = 'aes-256-cbc';
-    $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
-    $encrypted = openssl_encrypt($string, $method, $key, 0, $iv);
-    return base64_encode($encrypted . '::' . $iv);
-}
 
-function gpt_chat_decrypt_string($encrypted_string) {
-    if (empty($encrypted_string)) {
-        error_log("Encrypted string is empty");
-        return '';
-    }
-
-    $key = wp_salt('auth');
-    $method = 'aes-256-cbc';
-    $decoded = base64_decode($encrypted_string);
-    
-    if ($decoded === false) {
-        error_log("Failed to base64 decode the encrypted string");
-        return '';
-    }
-
-    $parts = explode('::', $decoded, 2);
-
-    if (count($parts) !== 2) {
-        error_log("Invalid encrypted string format. Parts count: " . count($parts));
-        return '';
-    }
-
-    list($encrypted_data, $iv) = $parts;
-
-    if (empty($iv)) {
-        error_log("Empty initialization vector");
-        return '';
-    }
-
-    $decrypted = openssl_decrypt($encrypted_data, $method, $key, 0, $iv);
-
-    if ($decrypted === false) {
-        error_log("Decryption failed: " . openssl_error_string());
-        return '';
-    }
-
-    return $decrypted;
-}
 
 
 add_action('init', 'ensure_gpt_chat_api_token');
@@ -244,57 +184,28 @@ function ensure_gpt_chat_api_token() {
 }
 
 
-function gpt_chat_reencrypt_keys() {
-    $existing_keys = get_option('gpt_chat_api_keys', array());
-    $reencrypted_keys = array();
-
-    foreach ($existing_keys as $key_name => $value) {
-        // Try to decrypt first in case it's already encrypted
-        $decrypted = gpt_chat_decrypt_string($value);
-        if (empty($decrypted)) {
-            // If decryption failed, assume it wasn't encrypted
-            $decrypted = $value;
-        }
-        $reencrypted_keys[$key_name] = gpt_chat_encrypt_string($decrypted);
-    }
-
-    update_option('gpt_chat_api_keys', $reencrypted_keys);
-    error_log("API keys re-encrypted");
-}
-
-add_action('admin_init', 'gpt_chat_maybe_reencrypt');
-
-function gpt_chat_maybe_reencrypt() {
-    if (get_option('gpt_chat_keys_reencrypted') !== 'yes') {
-        gpt_chat_reencrypt_keys();
-        update_option('gpt_chat_keys_reencrypted', 'yes');
-    }
-}
-
 function gpt_chat_generate_api_token() {
     $token = wp_generate_password(32, false);
     update_option('gpt_chat_api_token', $token);
     return $token;
 }
 
+/**
+ * Saves the API key without encryption.
+ *
+ * @param string $key_name The name of the API key.
+ * @param string $api_key The API key value.
+ */
 function gpt_chat_save_api_key($key_name, $api_key) {
-    $encrypted_key = gpt_chat_encrypt_string($api_key);
+    // Directly save the API key without encryption
     $api_keys = get_option('gpt_chat_api_keys', array());
-    $api_keys[$key_name] = $encrypted_key;
+    $api_keys[$key_name] = $api_key;
     update_option('gpt_chat_api_keys', $api_keys);
 }
 
+
 function gpt_chat_get_api_keys() {
-    $encrypted_keys = get_option('gpt_chat_api_keys', array());
-    $decrypted_keys = array();
-    foreach ($encrypted_keys as $key_name => $encrypted_key) {
-        $decrypted_key = gpt_chat_decrypt_string($encrypted_key);
-        if (!empty($decrypted_key)) {
-            $decrypted_keys[$key_name] = $decrypted_key;
-        } else {
-            error_log("Failed to decrypt key: $key_name");
-        }
-    }
-    return $decrypted_keys;
+    return get_option('gpt_chat_api_keys', array());
+
 }
 
