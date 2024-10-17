@@ -58,29 +58,50 @@ class GPT_Chat_API {
             register_rest_route('gpt-chat/v1', '/api-keys', array(
                 'methods' => 'GET',
                 'callback' => array(__CLASS__, 'get_api_keys'),
-                'permission_callback' => '__return_true',
+                'permission_callback' => 'gpt_chatbot_permissions_check',
             ));
         });
+
+
     }
     
-    public static function check_permission(WP_REST_Request $request) {
-        $provided_token = $request->get_header('X-GPT-Chat-Token');
-        $stored_token = get_option('gpt_chat_api_token');
-        
-        error_log('Provided token: ' . $provided_token);
-        error_log('Stored token: ' . $stored_token);
-        
-        if ($provided_token && $stored_token && hash_equals($stored_token, $provided_token)) {
-            return true;
-        }
-        
-        return new WP_Error('rest_forbidden', 'Invalid or missing API token.', array('status' => 401));
+  
+}
+
+
+        /**
+ * Permission callback to authenticate the request.
+ *
+ * @param WP_REST_Request $request
+ * @return bool|WP_Error
+ */
+function gpt_chatbot_permissions_check($request) {
+    // Retrieve the X-API-Token header
+    $api_token = $request->get_header('X-API-Token');
+    $secret_token = '5bwThLkRFv1Nw5aN2DXuCaMmltL0v2Nu'; // **Replace with your actual API token**
+
+    if ($api_token && $api_token === $secret_token) {
+        return true;
     }
-    
-    public static function get_api_keys() {
-        $api_keys = gpt_chat_get_api_keys();
-        return new WP_REST_Response($api_keys, 200);
+
+    return new WP_Error('rest_not_authorized', 'You are not authorized to access this endpoint.', array('status' => 401));
+}
+
+/**
+ * Callback to retrieve the API key.
+ *
+ * @param WP_REST_Request $request
+ * @return WP_REST_Response|WP_Error
+ */
+function gpt_chatbot_get_api_key($request) {
+    $key_name = $request->get_param('keyName');
+    $api_keys = get_option('gpt_chatbot_api_keys'); // **Assuming you store API keys as an option. Adjust as needed.**
+
+    if (isset($api_keys[$key_name])) {
+        return rest_ensure_response(array('apiKey' => $api_keys[$key_name]));
     }
+
+    return new WP_Error('invalid_key', 'API key not found.', array('status' => 404));
 }
 
 // Register the API routes
