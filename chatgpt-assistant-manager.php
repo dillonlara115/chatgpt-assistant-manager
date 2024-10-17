@@ -60,12 +60,24 @@ class GPT_Chat_API {
      * @return WP_REST_Response|WP_Error
      */
     public static function get_api_keys($request) {
-        $api_keys = gpt_chat_get_api_keys(); // Use the existing function to retrieve API keys
-
+        $api_keys = gpt_chat_get_api_keys();
+        $key_name = $request->get_param('gpt_chat_api_key_name');
+        error_log('Received gpt_chat_api_key_name: ' . $key_name);
+    
         if (empty($api_keys)) {
             return new WP_Error('no_keys', __('No API keys found.', 'gpt-chat-assistant'), array('status' => 404));
         }
-
+    
+        // If a specific key name is provided, return only that key
+        if ($key_name) {
+            if (isset($api_keys[$key_name])) {
+                return rest_ensure_response(array('apiKey' => $api_keys[$key_name]));
+            } else {
+                return new WP_Error('key_not_found', __('API key not found.', 'gpt-chat-assistant'), array('status' => 404));
+            }
+        }
+    
+        // If no key name is provided, return all keys
         return rest_ensure_response(array('apiKeys' => $api_keys));
     }
 }
