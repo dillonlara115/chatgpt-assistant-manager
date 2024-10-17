@@ -81,23 +81,6 @@ class GPT_Chat_API {
 }
 
 
-/**
- * Callback to retrieve the API key.
- *
- * @param WP_REST_Request $request
- * @return WP_REST_Response|WP_Error
- */
-function gpt_chatbot_get_api_key($request) {
-    $key_name = $request->get_param('keyName');
-    $api_keys = get_option('gpt_chat_api_keys'); // **Assuming you store API keys as an option. Adjust as needed.**
-
-    if (isset($api_keys[$key_name])) {
-        return rest_ensure_response(array('apiKey' => $api_keys[$key_name]));
-    }
-
-    return new WP_Error('invalid_key', 'API key not found.', array('status' => 404));
-}
-
 // Register the API routes
 GPT_Chat_API::register_routes();
 
