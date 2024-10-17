@@ -35,17 +35,7 @@ if (!class_exists('OpenAI\Client')) {
 }
 
 
-add_filter('rest_authentication_errors', function ($result) {
-    if (!empty($result)) {
-        return $result;
-    }
 
-    if (!is_user_logged_in()) {
-        return new WP_Error('rest_not_logged_in', 'You are not currently logged in.', array('status' => 401));
-    }
-
-    return $result;
-});
 
 // Include your plugin classes
 require_once GPT_CHAT_PLUGIN_PATH . 'includes/class-gpt-chat-admin.php';
