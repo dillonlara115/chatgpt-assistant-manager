@@ -56,6 +56,7 @@
             <th><?php esc_html_e('Description', 'gpt-chat-assistant'); ?></th>
             <th><?php esc_html_e('API Key', 'gpt-chat-assistant'); ?></th>
             <th><?php esc_html_e('Shortcode', 'gpt-chat-assistant'); ?></th>
+            <th><?php esc_html_e('Actions', 'gpt-chat-assistant'); ?></th>
         </tr>
     </thead>
     <tbody>
@@ -65,8 +66,40 @@
                 <td><?php echo esc_html($assistant['assistant_description']); ?></td>
                 <td><?php echo esc_html($assistant['api_key_name']); ?></td>
                 <td><code>[<?php echo esc_html($assistant['shortcode']); ?>]</code></td>
+                <td>
+                    <button class="button delete-assistant" data-assistant-id="<?php echo esc_attr($assistant['id']); ?>">
+                        <?php esc_html_e('Delete', 'gpt-chat-assistant'); ?>
+                    </button>
+                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
 </div>
+
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    $('.delete-assistant').on('click', function(e) {
+        e.preventDefault();
+        if (confirm('<?php esc_html_e('Are you sure you want to delete this assistant?', 'gpt-chat-assistant'); ?>')) {
+            var assistantId = $(this).data('assistant-id');
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'delete_assistant',
+                    assistant_id: assistantId,
+                    _wpnonce: '<?php echo wp_create_nonce('delete_assistant_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.data);
+                    }
+                }
+            });
+        }
+    });
+});
+</script>

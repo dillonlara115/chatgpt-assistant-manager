@@ -202,3 +202,15 @@ function gpt_chat_assistant_plugin_init() {
     }
 }
 add_action('plugins_loaded', 'gpt_chat_assistant_plugin_init');
+
+// Add this new function to handle AJAX requests
+function gpt_chat_assistant_ajax_handler() {
+    if (isset($_POST['action']) && $_POST['action'] === 'delete_api_key') {
+        if (class_exists('GPT_Chat_Admin')) {
+            GPT_Chat_Admin::delete_api_key();
+        } else {
+            wp_send_json_error('GPT_Chat_Admin class does not exist');
+        }
+    }
+}
+add_action('wp_ajax_delete_api_key', 'gpt_chat_assistant_ajax_handler');

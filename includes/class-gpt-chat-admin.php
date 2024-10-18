@@ -8,8 +8,9 @@ class GPT_Chat_Admin {
 
 	public static function init() {
 		add_action('admin_menu', array(__CLASS__, 'add_admin_menu'));
-		add_action('wp_ajax_delete_api_key', array(__CLASS__, 'delete_api_key'));   
-		error_log('GPT_Chat_Admin init called, hooks added');
+		add_action('wp_ajax_delete_api_key', array(__CLASS__, 'delete_api_key'));  
+		add_action('wp_ajax_delete_assistant', array(__CLASS__, 'delete_assistant'));
+ 
 	}
 
 
@@ -61,21 +62,17 @@ class GPT_Chat_Admin {
 		 <script type="text/javascript">
     jQuery(document).ready(function($) {
     var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-    console.log('AJAX URL:', ajaxurl);
 
     // Use event delegation
     $(document).on('click', '.delete-api-key', function(e) {
         e.preventDefault();
         var keyName = $(this).data('key-name');
         if (confirm('<?php _e('Are you sure you want to delete this API key?', 'gpt-chat-assistant'); ?>')) {
-            console.log('Sending AJAX request with key name:', keyName);
             $.post(ajaxurl, {
                 action: 'delete_api_key',
                 key_name: keyName,
                 _wpnonce: '<?php echo wp_create_nonce('delete_api_key_nonce'); ?>' // Add nonce
-            }, function(response) {
-				console.log('Full AJAX response:', response);
-                if (response.success) {
+            }, function(response) {                if (response.success) {
                     location.reload();
                 } else {
                     alert(response.data);
@@ -161,6 +158,36 @@ class GPT_Chat_Admin {
         } else {
             error_log('API key not found');
             wp_send_json_error(__('API key not found.', 'gpt-chat-assistant'));
+        }
+    }
+
+	public static function delete_assistant() {
+        error_log('delete_assistant function called');
+        error_log('POST data: ' . print_r($_POST, true));
+
+        if (!check_ajax_referer('delete_assistant_nonce', '_wpnonce', false)) {
+            error_log('Nonce verification failed');
+            wp_send_json_error(__('Nonce verification failed.', 'gpt-chat-assistant'));
+        }
+
+        if (!current_user_can('edit_posts')) {
+            error_log('Insufficient permissions');
+            wp_send_json_error(__('You do not have sufficient permissions to delete this assistant.', 'gpt-chat-assistant'));
+        }
+
+        $assistant_id = intval($_POST['assistant_id']);
+        error_log('Attempting to delete assistant with ID: ' . $assistant_id);
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gpt_assistants';
+        $result = $wpdb->delete($table_name, array('id' => $assistant_id), array('%d'));
+
+        if ($result !== false) {
+            error_log('Assistant deleted successfully');
+            wp_send_json_success(__('Assistant deleted successfully.', 'gpt-chat-assistant'));
+        } else {
+            error_log('Failed to delete assistant');
+            wp_send_json_error(__('Failed to delete assistant.', 'gpt-chat-assistant'));
         }
     }
 
