@@ -194,3 +194,11 @@ function gpt_chat_get_api_keys() {
 
 }
 
+function gpt_chat_assistant_plugin_init() {
+    if (class_exists('GPT_Chat_Admin')) {
+        GPT_Chat_Admin::init();
+    } else {
+        error_log('GPT_Chat_Admin class does not exist');
+    }
+}
+add_action('plugins_loaded', 'gpt_chat_assistant_plugin_init');
