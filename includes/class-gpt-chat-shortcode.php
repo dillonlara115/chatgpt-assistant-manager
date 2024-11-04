@@ -16,7 +16,7 @@ class GPT_Chat_Shortcode {
      data-api-key-name="<?php echo esc_attr($assistant['api_key_name']); ?>">
     <div class="chatbot-header">
         <img src="https://mixituponline.com/wp-content/uploads/2024/08/0005_molly_okane_08_23_2024-scaled.jpg" alt="Brand Voice Explorer">
-        <span>Brand Voice Explorer for Small Businesses</span>
+        <span><?php echo esc_attr($assistant['assistant_name']); ?></span>
     </div>
     <div class="chat-messages gpt-chat-messages" id="gpt-chat-messages">
         <!-- Messages will be appended here -->
