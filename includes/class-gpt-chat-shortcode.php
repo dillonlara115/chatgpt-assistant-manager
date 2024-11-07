@@ -18,7 +18,7 @@ class GPT_Chat_Shortcode {
             'wordpressUrl' => get_site_url(),
             'authToken' => wp_create_nonce('gpt_chat_auth'),
             'apiToken' => get_option('gpt_chat_api_token'),
-            'nodeJsUrl' => 'https://glacial-bayou-78142-e7f743daa346.herokuapp.com/' // Replace with your actual Node.js server URL
+            'nodeJsUrl' => 'https://glacial-bayou-78142-e7f743daa346.herokuapp.com/' 
         ));
 
         ob_start();
@@ -26,7 +26,8 @@ class GPT_Chat_Shortcode {
         <div class="chatbot-container gpt-chatbot" 
      data-assistant-id="<?php echo esc_attr($assistant['assistant_id']); ?>" 
      data-api-key-name="<?php echo esc_attr($assistant['api_key_name']); ?>"
-     data-zapier-webhook-url="<?php echo esc_attr($assistant['zapier_webhook_url']); ?>">
+			     data-zapier-webhook-url="<?php echo esc_attr($assistant['zapier_webhook_url']); ?>">
+
     <div class="chatbot-header">
         <img src="https://mixituponline.com/wp-content/uploads/2024/08/0005_molly_okane_08_23_2024-scaled.jpg" alt="Brand Voice Explorer">
         <span><?php echo esc_attr($assistant['assistant_name']); ?></span>
