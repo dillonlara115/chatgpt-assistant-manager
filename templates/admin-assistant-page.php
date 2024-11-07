@@ -19,6 +19,14 @@
 		</div>
 
 		<div class="field">
+			<label class="label"><?php esc_html_e( 'Zapier Webhook URL(optional)', 'gpt-chat-assistant' ); ?></label>
+			<div class="control">
+				<input class="input" type="url" name="zapier_webhook_url" placeholder="https://hooks.zapier.com/...">
+				<p class="help"><?php esc_html_e( 'Enter the Zapier webhook URL to integrate with', 'gpt-chat-assistant' ); ?></p>
+			</div>
+		</div>
+
+		<div class="field">
 			<label class="label"><?php esc_html_e( 'Description', 'gpt-chat-assistant' ); ?></label>
 			<div class="control">
 				<textarea class="textarea" name="assistant_description"></textarea>
@@ -56,6 +64,7 @@
             <th><?php esc_html_e('Description', 'gpt-chat-assistant'); ?></th>
             <th><?php esc_html_e('API Key', 'gpt-chat-assistant'); ?></th>
             <th><?php esc_html_e('Shortcode', 'gpt-chat-assistant'); ?></th>
+            <th><?php esc_html_e('Actions', 'gpt-chat-assistant'); ?></th>
         </tr>
     </thead>
     <tbody>
@@ -65,8 +74,159 @@
                 <td><?php echo esc_html($assistant['assistant_description']); ?></td>
                 <td><?php echo esc_html($assistant['api_key_name']); ?></td>
                 <td><code>[<?php echo esc_html($assistant['shortcode']); ?>]</code></td>
+                <td>
+                    <button class="button edit-assistant" data-assistant-id="<?php echo esc_attr($assistant['id']); ?>">
+                        <?php esc_html_e('Edit', 'gpt-chat-assistant'); ?>
+                    </button>
+                    <button class="button delete-assistant" data-assistant-id="<?php echo esc_attr($assistant['id']); ?>">
+                        <?php esc_html_e('Delete', 'gpt-chat-assistant'); ?>
+                    </button>
+                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
 </div>
+
+<div id="edit-assistant-modal" class="modal">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title"><?php esc_html_e('Edit Assistant', 'gpt-chat-assistant'); ?></p>
+      <button class="delete" aria-label="close"></button>
+    </header>
+    <section class="modal-card-body">
+      <!-- Form fields similar to the Add Assistant form -->
+      <input type="hidden" name="edit_id" value="">
+      <div class="field">
+        <label class="label"><?php esc_html_e('Assistant Name', 'gpt-chat-assistant'); ?></label>
+        <div class="control">
+          <input class="input" type="text" name="edit_assistant_name" required>
+        </div>
+
+        <label class="label"><?php esc_html_e('Assistant ID', 'gpt-chat-assistant'); ?></label>
+        <div class="control">
+          <input class="input" type="text" name="edit_assistant_id" required>
+        </div>
+        <label class="label"><?php esc_html_e('Zapier Webhook URL', 'gpt-chat-assistant'); ?></label>
+        <div class="control">
+          <input class="input" type="url" name="edit_zapier_webhook_url" required>
+        </div>
+
+        <label class="label"><?php esc_html_e('Assistant Description', 'gpt-chat-assistant'); ?></label>
+        <div class="control">
+          <textarea class="textarea" name="edit_assistant_description" required></textarea>
+        </div>
+
+        <label class="label"><?php esc_html_e('API Key Name', 'gpt-chat-assistant'); ?></label>
+        <div class="control">
+          <input class="input" type="text" name="edit_api_key_name" required>
+        </div>
+      </div>
+      <!-- Add other fields here -->
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-success"><?php esc_html_e('Save changes', 'gpt-chat-assistant'); ?></button>
+      <button class="button"><?php esc_html_e('Cancel', 'gpt-chat-assistant'); ?></button>
+    </footer>
+  </div>
+</div>
+
+
+
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+
+	function saveAssistantUpdates() {
+		console.log('saveAssistantUpdates clicked');
+	    var assistantData = {
+        action: 'save_assistant_updates',
+        id: $('input[name="edit_id"]').val(),
+        assistant_id: $('input[name="edit_assistant_id"]').val(),
+        assistant_name: $('input[name="edit_assistant_name"]').val(),
+        zapier_webhook_url: $('input[name="edit_zapier_webhook_url"]').val(),
+        assistant_description: $('textarea[name="edit_assistant_description"]').val(),
+        api_key_name: $('input[name="edit_api_key_name"]').val(),
+        security: '<?php echo wp_create_nonce('save_assistant_updates_nonce'); ?>'
+    };
+
+	$.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: assistantData,
+        success: function(response) {
+            if (response.success) {
+                alert('Assistant updated successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + response.data);
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.log('AJAX error: ' + textStatus + ' : ' + errorThrown);
+        }
+    });
+	}
+
+	$('.modal-card-foot .button.is-success').on('click', function(e) {
+	    e.preventDefault();
+	    saveAssistantUpdates();
+	});
+	$('.edit-assistant').on('click', function(e) {
+        e.preventDefault();
+        var assistantId = $(this).data('assistant-id');
+
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'get_assistant_data',
+                assistant_id: assistantId,
+                security: '<?php echo wp_create_nonce('get_assistant_data_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    var assistant = response.data;
+                    $('input[name="edit_id"]').val(assistant.id);
+                    $('input[name="edit_assistant_name"]').val(assistant.assistant_name);
+                    $('input[name="edit_assistant_id"]').val(assistant.assistant_id);
+                    $('input[name="edit_zapier_webhook_url"]').val(assistant.zapier_webhook_url);
+                    $('textarea[name="edit_assistant_description"]').val(assistant.assistant_description);
+                    $('input[name="edit_api_key_name"]').val(assistant.api_key_name);
+                    
+                    $('#edit-assistant-modal').addClass('is-active');
+                } else {
+                    alert('Error: ' + response.data);
+                }
+            }
+        });
+    });
+
+    $('.modal-background, .delete, .modal-card-foot .button').on('click', function() {
+        $('#edit-assistant-modal').removeClass('is-active');
+    });
+
+    $('.delete-assistant').on('click', function(e) {
+        e.preventDefault();
+        if (confirm('<?php esc_html_e('Are you sure you want to delete this assistant?', 'gpt-chat-assistant'); ?>')) {
+            var assistantId = $(this).data('assistant-id');
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'delete_assistant',
+                    assistant_id: assistantId,
+                    _wpnonce: '<?php echo wp_create_nonce('delete_assistant_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.data);
+                    }
+                }
+            });
+        }
+    });
+});
+</script>

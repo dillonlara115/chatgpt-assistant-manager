@@ -52,6 +52,67 @@ function gpt_chat_save_api_key($key_name, $api_key) {
     update_option('gpt_chat_api_keys', $api_keys);
 }
 
+add_action('wp_ajax_save_assistant_updates', 'save_assistant_updates');
+function save_assistant_updates() {
+    check_ajax_referer('save_assistant_updates_nonce', 'security');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'gpt_assistants';
+
+    $id = intval($_POST['id']); // This is the row ID
+    $assistant_name = sanitize_text_field($_POST['assistant_name']);
+    $assistant_id = sanitize_text_field($_POST['assistant_id']); // OpenAI Assistant ID
+    $zapier_webhook_url = esc_url_raw($_POST['zapier_webhook_url']);
+    $assistant_description = sanitize_textarea_field($_POST['assistant_description']);
+    $api_key_name = sanitize_text_field($_POST['api_key_name']);
+
+    $result = $wpdb->update(
+        $table_name,
+        array(
+            'assistant_name' => $assistant_name,
+            'assistant_id' => $assistant_id,      // Include this in update data
+            'assistant_description' => $assistant_description,
+            'api_key_name' => $api_key_name,
+            'zapier_webhook_url' => $zapier_webhook_url
+        ),
+        array('id' => $id),
+        array('%s', '%s', '%s', '%s', '%s'),
+        array('%d')
+    );
+
+    if ($result !== false) {
+        wp_send_json_success('Assistant updated successfully.');
+    } else {
+        wp_send_json_error('Failed to update assistant.');
+    }
+}
+
+
+function get_assistant_by_id($assistant_id) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'gpt_assistants';
+
+    $query = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $assistant_id);
+    $assistant = $wpdb->get_row($query, ARRAY_A);
+
+    return $assistant;
+}
+
+add_action('wp_ajax_get_assistant_data', 'get_assistant_data');
+function get_assistant_data() {
+    check_ajax_referer('get_assistant_data_nonce', 'security');
+
+    $assistant_id = intval($_POST['assistant_id']);
+    // Replace with your actual query to get assistant data
+    $assistant = get_assistant_by_id($assistant_id);
+
+    if ($assistant) {
+        wp_send_json_success($assistant);
+    } else {
+        wp_send_json_error('Assistant not found');
+    }
+}
+
 function gpt_chat_activate() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'gpt_assistants';
@@ -64,6 +125,7 @@ function gpt_chat_activate() {
         assistant_description text NOT NULL,
         api_key_name varchar(50) NOT NULL,
         shortcode varchar(50) NOT NULL,
+        zapier_webhook_url varchar(255) NOT NULL,
         PRIMARY KEY (id)
     ) $charset_collate;";
 
@@ -126,4 +188,11 @@ function gpt_chat_enqueue_frontend_assets() {
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce'    => wp_create_nonce('gpt_chat_nonce'),
     ));
+}
+
+
+// Enqueue backend assets
+add_action('admin_enqueue_scripts', 'gpt_chat_enqueue_backend_assets');
+function gpt_chat_enqueue_backend_assets() {
+    wp_enqueue_style('bulma-css', 'https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css');
 }

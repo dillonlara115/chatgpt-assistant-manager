@@ -13,7 +13,7 @@ class GPT_Chat_Admin {
 			'edit_posts',
 			'gpt-chat-assistants',
 			array( __CLASS__, 'render_assistant_page' ),
-			'dashicons-robot'
+			'dashicons-format-chat', // Icon
 		);
 
 		add_submenu_page(
