@@ -36,8 +36,7 @@
 		<div class="field">
 			<label class="label"><?php esc_html_e( 'API Key', 'gpt-chat-assistant' ); ?></label>
 			<div class="control">
-				<div class="select">
-				<select name="api_key_name">
+				<select class="input" name="api_key_name">
                         <?php 
                         $api_keys = gpt_chat_get_api_keys();
                         foreach ($api_keys as $key_name => $key_value) : 
@@ -45,7 +44,6 @@
                             <option value="<?php echo esc_attr($key_name); ?>"><?php echo esc_html($key_name); ?></option>
                         <?php endforeach; ?>
                     </select>
-				</div>
 			</div>
 		</div>
 
@@ -119,9 +117,23 @@
         </div>
 
         <label class="label"><?php esc_html_e('API Key Name', 'gpt-chat-assistant'); ?></label>
-        <div class="control">
-          <input class="input" type="text" name="edit_api_key_name" required>
-        </div>
+<div class="control">
+    <select class="input" name="edit_api_key_name" required>
+        <?php 
+        $api_keys = gpt_chat_get_api_keys();
+        foreach ($api_keys as $key_name => $key_value) : 
+            // Debug the values
+            error_log('Comparing key_name: ' . $key_name . ' with assistant api_key_name: ' . $assistant['api_key_name']);
+            $selected = ($key_name === $assistant['api_key_name']) ? 'selected' : '';
+        ?>
+            <option value="<?php echo esc_attr($key_name); ?>" <?php echo $selected; ?>>
+                <?php echo esc_html($key_name); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
+
       </div>
       <!-- Add other fields here -->
     </section>
@@ -146,7 +158,7 @@ jQuery(document).ready(function($) {
         assistant_name: $('input[name="edit_assistant_name"]').val(),
         zapier_webhook_url: $('input[name="edit_zapier_webhook_url"]').val(),
         assistant_description: $('textarea[name="edit_assistant_description"]').val(),
-        api_key_name: $('input[name="edit_api_key_name"]').val(),
+        api_key_name: $('select[name="edit_api_key_name"]').val(),
         security: '<?php echo wp_create_nonce('save_assistant_updates_nonce'); ?>'
     };
 
@@ -192,7 +204,7 @@ jQuery(document).ready(function($) {
                     $('input[name="edit_assistant_id"]').val(assistant.assistant_id);
                     $('input[name="edit_zapier_webhook_url"]').val(assistant.zapier_webhook_url);
                     $('textarea[name="edit_assistant_description"]').val(assistant.assistant_description);
-                    $('input[name="edit_api_key_name"]').val(assistant.api_key_name);
+                    $('select[name="edit_api_key_name"]').val(assistant.api_key_name);
                     
                     $('#edit-assistant-modal').addClass('is-active');
                 } else {
