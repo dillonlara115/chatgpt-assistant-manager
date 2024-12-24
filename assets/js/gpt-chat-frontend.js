@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let initialPromptSent = false;  // Track if the initial prompt was sent
         let lastMessageId = null;  // NEW: Track the last message ID appended
 
+        
+        
         function appendMessage(content, type = 'user') {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message');
@@ -18,19 +20,24 @@ document.addEventListener('DOMContentLoaded', function() {
             messageElement.innerHTML = marked.parse(content);
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return messageElement; // Return the element so we can reference it later
         }
-
-        function fetchWithStreaming(message, assistantId, threadId, apiKeyName) {
+        
+        function fetchWithStreaming(message, assistantId, threadId, apiKeyName, zapierWebhookUrl) {
             console.log('Sending message:', message);
+        
+            // Store the loading element reference
+            let loadingMessage = appendMessage('Loading...', 'assistant');
 
             const requestBody = {
                 message: message,
                 assistantId: assistantId,
-                threadId: threadId || '',  // Ensure threadId is a string
+                threadId: threadId || '',
                 apiKeyName: apiKeyName,
-                wordpressUrl: gptChatData.wordpressUrl
+                wordpressUrl: gptChatData.wordpressUrl,
+                zapier_webhook_url: zapierWebhookUrl
             };
-
+        
             fetch(gptChatData.nodeJsUrl + '/api/run-assistant', {
                 method: 'POST',
                 headers: {
@@ -45,6 +52,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                // Remove the loading message
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+        
                 if (data.success && Array.isArray(data.messages)) {
                     console.log('Received messages:', data.messages);
                     data.messages.forEach((msg) => {
@@ -53,31 +65,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (data.error) {
                     showError(data.error);
                 }
-
-                // Update thread ID after the response is received
+        
                 if (data.threadId) {
                     currentThreadId = data.threadId;
                     console.log('Updated thread ID:', currentThreadId);
                 }
             })
             .catch(error => {
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
                 console.error('Error:', error);
                 showError(error.message);
             });
         }
+
+        
         // Function to send a message (initial or user message)
         function sendMessage(message, isInitialPrompt = false) {
             console.log('sendMessage called with:', message);  // Log each time this is called
 
             const assistantId = chatbot.dataset.assistantId;
             const apiKeyName = chatbot.dataset.apiKeyName;
+            const zapierWebhookUrl = chatbot.dataset.zapierWebhookUrl;
+
 
             if (!isInitialPrompt) {
                 appendMessage(message, 'user');  // Only append user messages
             }
 
             // Call fetchWithStreaming to send the message
-            fetchWithStreaming(message, assistantId, currentThreadId, apiKeyName);
+            fetchWithStreaming(message, assistantId, currentThreadId, apiKeyName, zapierWebhookUrl);
             isNewSession = false;  // Mark session as started after sending a message
         }
 

@@ -10,10 +10,27 @@ class GPT_Chat_Admin {
 		add_action('admin_menu', array(__CLASS__, 'add_admin_menu'));
 		add_action('wp_ajax_delete_api_key', array(__CLASS__, 'delete_api_key'));  
 		add_action('wp_ajax_delete_assistant', array(__CLASS__, 'delete_assistant'));
+
+
+		self::update_db_schema();
  
 	}
 
-
+	public static function update_db_schema() {
+		global $wpdb;
+		
+		// Check if column exists first
+		$table_name = $wpdb->prefix . 'gpt_assistants';
+		$row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+			WHERE TABLE_SCHEMA = '" . DB_NAME . "' 
+			AND TABLE_NAME = '{$table_name}'
+			AND COLUMN_NAME = 'zapier_headers'");
+			
+		if(empty($row)) {
+			$wpdb->query("ALTER TABLE {$table_name} 
+						 ADD COLUMN zapier_headers TEXT AFTER zapier_webhook_url");
+		}
+	}
 	
 
 	public static function get_api_key(WP_REST_Request $request) {
@@ -206,6 +223,8 @@ class GPT_Chat_Admin {
 			$assistant_id = sanitize_text_field($_POST['assistant_id']);
 			$assistant_description = sanitize_textarea_field($_POST['assistant_description']);
 			$api_key_name = sanitize_text_field($_POST['api_key_name']);
+			$zapier_headers = isset($_POST['zapier_headers']) ? array_map('sanitize_text_field', $_POST['zapier_headers']) : array();
+
 	
 			// Generate a unique shortcode
 			$shortcode = 'gpt_assistant_' . wp_generate_password(6, false);
@@ -215,7 +234,9 @@ class GPT_Chat_Admin {
 				'assistant_id' => $assistant_id,
 				'assistant_description' => $assistant_description,
 				'api_key_name' => $api_key_name,
-				'shortcode' => $shortcode
+				'shortcode' => $shortcode,
+				'zapier_headers' => json_encode($zapier_headers) // Store as JSON string
+
 			));
 	
 			echo '<div class="updated"><p>' . __('Assistant added successfully.', 'gpt-chat-assistant') . '</p></div>';

@@ -1,7 +1,7 @@
 <div class="wrap">
 	<h1><?php esc_html_e( 'Manage GPT Assistants', 'gpt-chat-assistant' ); ?></h1>
 
-	<form method="POST">
+	<form method="POST" class="mb-4">
 		<?php wp_nonce_field( 'gpt_add_assistant_nonce' ); ?>
 		<div class="field">
 			<label class="label"><?php esc_html_e( 'Assistant Name', 'gpt-chat-assistant' ); ?></label>
@@ -33,6 +33,20 @@
 			</div>
 		</div>
 
+		<div class="mb-4">
+			<label class="label"><?php esc_html_e('Zapier Data Headers', 'gpt-chat-assistant'); ?></label>
+			<div id="zapier-headers-container">
+				<div class="field is-grouped">
+                    <p class="control is-expanded">
+					<input type="text" class="input " name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
+                    </p>
+                    <p class="control">
+                    <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
+                    <button type="button" class="button is-info" id="add-header" style="">Add Header</button>
+				</div>
+			</div>
+		</div>
+
 		<div class="field">
 			<label class="label"><?php esc_html_e( 'API Key', 'gpt-chat-assistant' ); ?></label>
 			<div class="control">
@@ -46,6 +60,22 @@
                     </select>
 			</div>
 		</div>
+
+		<script>
+		jQuery(document).ready(function($) {
+			$('#add-header').click(function() {
+				var newRow = $('<div class="zapier-header-row">' +
+					'<input type="text" class="input zapier-header" name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">' +
+					'<button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>' +
+					'</div>');
+				$('#zapier-headers-container').append(newRow);
+			});
+
+			$(document).on('click', '.remove-header', function() {
+				$(this).parent().remove();
+			});
+		});
+		</script>
 
 		<div class="field">
 			<div class="control">
@@ -115,6 +145,26 @@
         <div class="control">
           <textarea class="textarea" name="edit_assistant_description" required></textarea>
         </div>
+        <div class="mb-4">
+            <label class="label"><?php esc_html_e('Zapier Data Headers', 'gpt-chat-assistant'); ?></label>
+            <div id="edit-zapier-headers-container">
+                <?php 
+                $zapier_headers = json_decode($assistant['zapier_headers'], true) ?: array();
+                foreach($zapier_headers as $header): ?>
+                    <div class="field is-grouped">
+                        <p class="control is-expanded">
+                            <input type="text" class="input zapier-header" name="edit_zapier_headers[]" value="<?php echo esc_attr($header); ?>" placeholder="Enter header name (e.g. first_name, email)">
+                        </p>
+                        <p class="control">
+                            <button type="button" class="button is-danger remove-header" data-header="<?php echo esc_attr($header); ?>" style="margin-left: 10px;">Remove</button>
+                        </p>
+                    </div>
+                <?php endforeach; ?>
+                <p class="control">
+                    <button type="button" class="button is-info" id="edit-add-header">Add Header</button>
+                </p>
+            </div>
+        </div>
 
         <label class="label"><?php esc_html_e('API Key Name', 'gpt-chat-assistant'); ?></label>
 <div class="control">
@@ -128,10 +178,33 @@
         ?>
             <option value="<?php echo esc_attr($key_name); ?>" <?php echo $selected; ?>>
                 <?php echo esc_html($key_name); ?>
-            </option>
+            </option>r
         <?php endforeach; ?>
     </select>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // Add header button click handler
+    $('#edit-add-header').on('click', function() {
+    var newHeader = `
+        <div class="field is-grouped">
+            <p class="control is-expanded">
+                <input type="text" class="input zapier-header" name="edit_zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
+            </p>
+            <p class="control">
+                <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
+            </p>
+        </div>`;
+    $('#edit-zapier-headers-container').append(newHeader);
+});
+
+    // Remove header button click handler using event delegation
+    $('#edit-zapier-headers-container').on('click', '.remove-header', function() {
+        $(this).closest('.field').remove();
+    });
+});
+</script>
 
 
       </div>
@@ -149,18 +222,32 @@
 <script type="text/javascript">
 jQuery(document).ready(function($) {
 
+   
+
 	function saveAssistantUpdates() {
 		console.log('saveAssistantUpdates clicked');
+
+        var zapierHeaders = [];
+    $('#edit-zapier-headers-container input.zapier-header').each(function() {
+        console.log('Found header input:', $(this).val());
+        if ($(this).val().trim()) { // Only include non-empty values
+            zapierHeaders.push($(this).val().trim());
+        }
+    });
+    
+    console.log('Collected headers:', zapierHeaders);
+    
 	    var assistantData = {
-        action: 'save_assistant_updates',
-        id: $('input[name="edit_id"]').val(),
-        assistant_id: $('input[name="edit_assistant_id"]').val(),
-        assistant_name: $('input[name="edit_assistant_name"]').val(),
-        zapier_webhook_url: $('input[name="edit_zapier_webhook_url"]').val(),
-        assistant_description: $('textarea[name="edit_assistant_description"]').val(),
-        api_key_name: $('select[name="edit_api_key_name"]').val(),
-        security: '<?php echo wp_create_nonce('save_assistant_updates_nonce'); ?>'
-    };
+            action: 'save_assistant_updates',
+            id: $('input[name="edit_id"]').val(),
+            assistant_id: $('input[name="edit_assistant_id"]').val(),
+            assistant_name: $('input[name="edit_assistant_name"]').val(),
+            zapier_webhook_url: $('input[name="edit_zapier_webhook_url"]').val(),
+            assistant_description: $('textarea[name="edit_assistant_description"]').val(),
+            api_key_name: $('select[name="edit_api_key_name"]').val(),
+            zapier_headers: zapierHeaders, // Add this line
+            security: '<?php echo wp_create_nonce('save_assistant_updates_nonce'); ?>'
+        };
 
 	$.ajax({
         url: ajaxurl,
@@ -242,3 +329,9 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+<style>
+    .wp-core-ui p .button {
+        font-size: 16px;
+        vertical-align: top;
+    }
+</style>

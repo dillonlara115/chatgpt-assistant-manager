@@ -18,7 +18,7 @@ class GPT_Chat_Shortcode {
             'wordpressUrl' => get_site_url(),
             'authToken' => wp_create_nonce('gpt_chat_auth'),
             'apiToken' => get_option('gpt_chat_api_token'),
-            'nodeJsUrl' => 'https://glacial-bayou-78142-e7f743daa346.herokuapp.com/' 
+            'nodeJsUrl' => 'https://glacial-bayou-78142-e7f743daa346.herokuapp.com' 
         ));
 
         ob_start();

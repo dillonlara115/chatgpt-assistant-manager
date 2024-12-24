@@ -11,10 +11,10 @@ use GuzzleHttp\Exception\GuzzleException;
 use OpenAI;
 
 class GPT_Chat_Ajax {
-    private static $max_tokens = 2000; // Set a default max token limit
+    private static $max_tokens = 4000; // Set a default max token limit
 
     public static function send_message() {
-        set_time_limit(90); // 5 minutes
+        set_time_limit(60); // 5 minutes
         ini_set('memory_limit', '256M');
     
         check_ajax_referer('gpt_chat_nonce', 'nonce');
@@ -27,6 +27,7 @@ class GPT_Chat_Ajax {
         $api_keys = gpt_chat_get_api_keys();
         $api_key = isset($api_keys[$api_key_name]) ? $api_keys[$api_key_name] : '';
     
+
         if (empty($api_key)) {
             wp_send_json_error(['error' => __('API key not set. Please configure the API key in the plugin settings.', 'gpt-chat-assistant')]);
             return;
@@ -89,9 +90,9 @@ class GPT_Chat_Ajax {
             'assistant_id' => $assistant_id,
         ]);
 
-        self::sendChunk(json_encode(['statuses' => 'run_created', 'run_id' => $run->id]));
+        self::sendChunk(json_encode(['status' => 'run_created', 'run_id' => $run->id]));
 
-        $maxAttempts = 90; // 3 minutes
+        $maxAttempts = 60; // 3 minutes
         $attempt = 0;
 
         error_log('Max tokens set to: ' . self::$max_tokens);
@@ -149,6 +150,8 @@ class GPT_Chat_Ajax {
         ob_flush();
         flush();
     }
+
+    
 
     // Function to set max tokens
     public static function set_max_tokens($tokens) {
