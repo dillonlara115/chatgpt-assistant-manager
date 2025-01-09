@@ -37,13 +37,16 @@
 			<label class="label"><?php esc_html_e('Zapier Data Headers', 'gpt-chat-assistant'); ?></label>
 			<div id="zapier-headers-container">
 				<div class="field is-grouped">
-                    <p class="control is-expanded">
-					<input type="text" class="input " name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
-                    </p>
-                    <p class="control">
-                    <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
-                    <button type="button" class="button is-info" id="add-header" style="">Add Header</button>
+					<p class="control is-expanded">
+						<input type="text" class="input" name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
+					</p>
+					<p class="control">
+						<button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
+					</p>
 				</div>
+			</div>
+			<div class="field">
+				<button type="button" class="button is-info mt-2" id="add-header">Add Header</button>
 			</div>
 		</div>
 
@@ -64,9 +67,9 @@
 		<script>
 		jQuery(document).ready(function($) {
 			$('#add-header').click(function() {
-				var newRow = $('<div class="zapier-header-row">' +
-					'<input type="text" class="input zapier-header" name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">' +
-					'<button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>' +
+				var newRow = $('<div class="zapier-header-row field is-grouped">' +
+					'<p class="control is-expanded"><input type="text" class="input zapier-header" name="zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)"></p>' +
+					'<p class="control"><button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button></p >' +
 					'</div>');
 				$('#zapier-headers-container').append(newRow);
 			});
@@ -185,20 +188,19 @@
 
 <script>
 jQuery(document).ready(function($) {
-    // Add header button click handler
-    $('#edit-add-header').on('click', function() {
-    var newHeader = `
-        <div class="field is-grouped">
-            <p class="control is-expanded">
-                <input type="text" class="input zapier-header" name="edit_zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
-            </p>
-            <p class="control">
-                <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
-            </p>
-        </div>`;
-    $('#edit-zapier-headers-container').append(newHeader);
-});
-
+    // Change from direct binding to event delegation
+    $(document).on('click', '#edit-add-header', function() {
+        var newHeader = `
+            <div class="field is-grouped">
+                <p class="control is-expanded">
+                    <input type="text" class="input zapier-header" name="edit_zapier_headers[]" placeholder="Enter header name (e.g. first_name, email)">
+                </p>
+                <p class="control">
+                    <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
+                </p>
+            </div>`;
+        $(this).parent().before(newHeader);  // Insert before the "Add Header" button container
+    });
     // Remove header button click handler using event delegation
     $('#edit-zapier-headers-container').on('click', '.remove-header', function() {
         $(this).closest('.field').remove();
@@ -245,7 +247,7 @@ jQuery(document).ready(function($) {
             zapier_webhook_url: $('input[name="edit_zapier_webhook_url"]').val(),
             assistant_description: $('textarea[name="edit_assistant_description"]').val(),
             api_key_name: $('select[name="edit_api_key_name"]').val(),
-            zapier_headers: zapierHeaders, // Add this line
+            zapier_headers: zapierHeaders,
             security: '<?php echo wp_create_nonce('save_assistant_updates_nonce'); ?>'
         };
 
@@ -272,34 +274,59 @@ jQuery(document).ready(function($) {
 	    saveAssistantUpdates();
 	});
 	$('.edit-assistant').on('click', function(e) {
-        e.preventDefault();
-        var assistantId = $(this).data('assistant-id');
+    e.preventDefault();
+    var assistantId = $(this).data('assistant-id');
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'get_assistant_data',
-                assistant_id: assistantId,
-                security: '<?php echo wp_create_nonce('get_assistant_data_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success) {
-                    var assistant = response.data;
-                    $('input[name="edit_id"]').val(assistant.id);
-                    $('input[name="edit_assistant_name"]').val(assistant.assistant_name);
-                    $('input[name="edit_assistant_id"]').val(assistant.assistant_id);
-                    $('input[name="edit_zapier_webhook_url"]').val(assistant.zapier_webhook_url);
-                    $('textarea[name="edit_assistant_description"]').val(assistant.assistant_description);
-                    $('select[name="edit_api_key_name"]').val(assistant.api_key_name);
-                    
-                    $('#edit-assistant-modal').addClass('is-active');
-                } else {
-                    alert('Error: ' + response.data);
+    $.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: {
+            action: 'get_assistant_data',
+            assistant_id: assistantId,
+            security: '<?php echo wp_create_nonce('get_assistant_data_nonce'); ?>'
+        },
+        success: function(response) {
+            if (response.success) {
+                var assistant = response.data;
+                // Clear existing headers
+                $('#edit-zapier-headers-container').empty();
+                
+                // Add headers from the selected assistant
+                if (assistant.zapier_headers) {
+                    var headers = JSON.parse(assistant.zapier_headers);
+                    headers.forEach(function(header) {
+                        var headerRow = `
+                            <div class="field is-grouped">
+                                <p class="control is-expanded">
+                                    <input type="text" class="input zapier-header" name="edit_zapier_headers[]" value="${header}" placeholder="Enter header name (e.g. first_name, email)">
+                                </p>
+                                <p class="control">
+                                    <button type="button" class="button is-danger remove-header" style="margin-left: 10px;">Remove</button>
+                                </p>
+                            </div>`;
+                        $('#edit-zapier-headers-container').append(headerRow);
+                    });
                 }
+                
+                // Add the "Add Header" button back
+                $('#edit-zapier-headers-container').append(`
+                    <p class="control">
+                        <button type="button" class="button is-info" id="edit-add-header">Add Header</button>
+                    </p>
+                `);
+
+                // Set other fields...
+                $('input[name="edit_id"]').val(assistant.id);
+                $('input[name="edit_assistant_name"]').val(assistant.assistant_name);
+                // ... rest of your field population code ...
+
+                $('#edit-assistant-modal').addClass('is-active');
+            } else {
+                alert('Error: ' + response.data);
             }
-        });
+        }
     });
+});
 
     $('.modal-background, .delete, .modal-card-foot .button').on('click', function() {
         $('#edit-assistant-modal').removeClass('is-active');
@@ -333,5 +360,9 @@ jQuery(document).ready(function($) {
     .wp-core-ui p .button {
         font-size: 16px;
         vertical-align: top;
+    }
+    .wp-core-ui .button-secondary:hover, .wp-core-ui .button.hover, .wp-core-ui .button:hover, .wp-core-ui .button:focus {
+        background-color: #3488ce !important;
+        color: white;
     }
 </style>
