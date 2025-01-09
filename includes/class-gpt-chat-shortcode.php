@@ -26,7 +26,8 @@ class GPT_Chat_Shortcode {
         <div class="chatbot-container gpt-chatbot" 
      data-assistant-id="<?php echo esc_attr($assistant['assistant_id']); ?>" 
      data-api-key-name="<?php echo esc_attr($assistant['api_key_name']); ?>"
-			     data-zapier-webhook-url="<?php echo esc_attr($assistant['zapier_webhook_url']); ?>">
+			     data-zapier-webhook-url="<?php echo esc_attr($assistant['zapier_webhook_url']); ?>"
+			     data-zapier-headers='<?php echo esc_attr($assistant['zapier_headers']); ?>'>
 
     <div class="chatbot-header">
         <img src="https://mixituponline.com/wp-content/uploads/2024/08/0005_molly_okane_08_23_2024-scaled.jpg" alt="Brand Voice Explorer">
